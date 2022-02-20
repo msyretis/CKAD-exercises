@@ -245,6 +245,16 @@ kubectl get po busybox2 -o wide
 If they are on different nodes, you won't see the file, because we used the `hostPath` volume type.
 If you need to access the same files in a multi-node cluster, you need a volume type that is independent of a specific node.
 There are lots of different types per cloud provider [(see here)](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#types-of-persistent-volumes), a general solution could be to use NFS.
+Alternatively and if you must use the hostPath PV type, you can add a label on the node, and apply a nodeSelector on the pods, this is not a recommended approach for production environment
+ 
+    nodeSelector:
+    run: here
+
+k get nodes -l run=here
+NAME                  STATUS   ROLES    AGE     VERSION
+cka-ha-k8s-worker-1   Ready    <none>   4d22h   v1.23.3
+  
+  
 
 </p>
 </details>
