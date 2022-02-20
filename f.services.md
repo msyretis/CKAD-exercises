@@ -213,6 +213,9 @@ spec:
     - podSelector: # from pods
         matchLabels: # with this label
           access: granted
+    ports:
+    - protocol: TCP
+      port: 80
 ```
 
 ```bash
@@ -221,8 +224,50 @@ kubectl create -f policy.yaml
 
 # Check if the Network Policy has been created correctly
 # make sure that your cluster's network provider supports Network Policy (https://kubernetes.io/docs/tasks/administer-cluster/declare-network-policy/#before-you-begin)
-kubectl run busybox --image=busybox --rm -it --restart=Never -- wget -O- http://nginx:80 --timeout 2                          # This should not work. --timeout is optional here. But it helps to get answer more quickly (in seconds vs minutes)
-kubectl run busybox --image=busybox --rm -it --restart=Never --labels=access=granted -- wget -O- http://nginx:80 --timeout 2  # This should be fine
+Create two busybox pods, one with labels that match the policy, and one that does not. Create them with a long sleep timer.
+  
+k run busybox-allowed --image=busybox --labels='access:granted' -- sleep 1d
+k run busybox-disallowed --image=busybox --labels='access=not-granted' -- sleep 1d
+  
+busybox-allowed          1/1     Running   0          9m      access=granted
+busybox-disallowed       1/1     Running   0          8m33s   access=not-granted
+
+the pod with the "right" labels manages to get the index
+  
+k exec -it busybox-allowed -- wget -O- nginx 
+Connecting to nginx (10.33.50.189:80)
+writing to stdout
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+-                    100% |********************************|   615  0:00:00 ETA
+written to stdout
+
+while the pod with the "wrong labels" fails to get the index
+k exec -it busybox-disallowed -- wget -O- nginx --timeout 5
+Connecting to nginx (10.33.50.189:80)
+wget: download timed out
+command terminated with exit code 1
 ```
 
 </p>
